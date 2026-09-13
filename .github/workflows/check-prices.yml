@@ -11,7 +11,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
       - name: Trigger protected check
         env:
@@ -19,7 +19,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           test -n "$WATCHTOWER_URL" && test -n "$CRON_SECRET"
-          curl --fail-with-body --silent --show-error --max-time 65 \
+          curl --fail-with-body --silent --show-error --max-time 310 \
             -H "Authorization: Bearer $CRON_SECRET" \
             "$WATCHTOWER_URL/api/cron/check-prices" > result.json
           python - <<'PY'
@@ -30,3 +30,4 @@ jobs:
           if any('error' in item for item in result.get('results', [])):
               raise SystemExit('One or more product checks failed')
           PY
+

@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.local
+.pnpm-store
+.next
+node_modules
+.git

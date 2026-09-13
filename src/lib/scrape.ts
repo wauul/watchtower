@@ -25,7 +25,7 @@ export function extract(html:string,url:string){
  const offer=Array.isArray(product?.offers)?product.offers[0]:product?.offers;
  const name=product?.name||$('meta[property="og:title"]').attr('content')||$('h1').first().text().trim();
  const price=parsePrice(offer?.price??$('meta[property="product:price:amount"]').attr('content')??$('[itemprop="price"]').attr('content')??$('.price_color, .a-price .a-offscreen, [itemprop="price"]').first().text());
- const currency=offer?.priceCurrency||$('meta[property="product:price:currency"]').attr('content')||($('body').text().includes('£')?'GBP':null);
+ const currency=offer?.priceCurrency||$('meta[property="product:price:currency"]').attr('content')||$('[itemprop="priceCurrency"]').attr('content')||($('body').text().includes('£')?'GBP':null);
  const availability=String(offer?.availability||$('[itemprop="availability"]').attr('href')||$('.availability').text());
  const stock=/OutOfStock|SoldOut|out of stock/i.test(availability)?'out_of_stock':/InStock|in stock/i.test(availability)?'in_stock':'unknown';
  let image=Array.isArray(product?.image)?product.image[0]:product?.image;image=typeof image==='object'?image?.url:image;image=image||$('meta[property="og:image"]').attr('content')||$('.product_main img, .thumbnail img').first().attr('src');

@@ -11,7 +11,7 @@ async function page(raw:string,depth=0):Promise<string>{
  const addresses=await lookup(u.hostname,{all:true});if(!addresses.length||addresses.some(a=>!publicAddress(a.address)))throw new Error('Private network URLs are not allowed');
  // Pin the validated DNS address to the actual socket. Recheck every redirect to prevent SSRF/rebinding.
  const address=addresses[0];
- return new Promise((resolve,reject)=>{const req=https.get(u,{lookup:(_h,_o,cb)=>cb(null,address.address,address.family),headers:{'User-Agent':'Watchtower/1.0 (personal price tracker)','Accept':'text/html'}},res=>{
+ return new Promise((resolve,reject)=>{const req=https.get(u,{lookup:((_h:string,options:any,cb:any)=>options.all?cb(null,[address]):cb(null,address.address,address.family)) as any,headers:{'User-Agent':'Watchtower/1.0 (personal price tracker)','Accept':'text/html'}},res=>{
  if(res.statusCode&&res.statusCode>=300&&res.statusCode<400&&res.headers.location){res.resume();resolve(page(new URL(res.headers.location,u).href,depth+1));return;}
  if(res.statusCode!==200){res.resume();reject(new Error(`Retailer returned HTTP ${res.statusCode}`));return;}
  if(!res.headers['content-type']?.includes('text/html')){res.resume();reject(new Error('Product page must be HTML'));return;}
@@ -37,3 +37,4 @@ export async function scrape(url:string){const p=extract(await page(url),url);if
  const fallback=await ask('Extract {productName:string,price:number|null,imageUrl:string|null}. Use the current sale price, not an installment, discount amount, or crossed-out price. Null if uncertain.',p.text,z.object({productName:z.string(),price:z.number().positive().nullable(),imageUrl:z.string().nullable()}));p.name=p.name||fallback.productName;p.price=p.price||fallback.price;
  if(!p.imageUrl&&fallback.imageUrl){try{p.imageUrl=safeUrl(fallback.imageUrl).href;}catch{}}
  }if(!p.price)throw new Error('Could not find a reliable price on this page');if(!p.currency||!(/^[A-Z]{3}$/.test(p.currency)))throw new Error('Could not identify the product currency reliably');return {...p,price:p.price,currency:String(p.currency)};}
+

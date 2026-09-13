@@ -1,12 +1,12 @@
 # Watchtower
 
-A small, full-stack price and restock tracker. Next.js 14 App Router, React, Tailwind, Prisma/Postgres on Neon, Cheerio, Groq `llama-3.1-8b-instant`, Resend and Recharts.
+A small, full-stack price and restock tracker. Next.js 14 App Router, React, Tailwind, Prisma/Postgres on Neon, Cheerio, Groq `openai/gpt-oss-20b`, Resend and Recharts.
 
 ## Current service constraints
 
 - **Google Custom Search JSON API is closed to new customers.** Existing customers have until January 1, 2027 to transition. The integration is implemented, but new API activation does not guarantee eligibility. Without working credentials, Watchtower explicitly shows no alternatives; it never fabricates search results. [Google documentation](https://developers.google.com/custom-search/v1/overview).
 - **Vercel Hobby allows daily cron schedules, not every six hours.** `vercel.json` registers a daily fallback at 05:00 UTC. The included GitHub Actions workflow calls the same protected endpoint every six hours, using repository secrets. Never change the Vercel cron to `0 */6 * * *` on Hobby: deployment will fail. [Vercel limits](https://vercel.com/docs/cron-jobs/usage-and-pricing).
-- Resend's sandbox sender only emails the account owner's verified email. This instance is restricted through `ALLOWED_EMAIL`. To invite other users, verify a domain you own, set `EMAIL_FROM`, and remove that restriction. Domain purchase is not included or required for personal use.
+- Resend's sandbox sender only emails the account owner's verified email. The deployed instance uses alerts@waelfz.com with no owner-only restriction. To invite other users, verify a domain you own, set `EMAIL_FROM`, and remove that restriction. Domain purchase is not included or required for personal use.
 - The free instance supports 10 tracked products per owner, with bounded check batches. Scheduling is best effort, not exact-time delivery. A run may defer products to the next trigger when time is tight.
 
 ## Local setup
@@ -28,6 +28,7 @@ The Prisma JavaScript engine and official Postgres adapter support Windows ARM w
 | --- | --- |
 | `DATABASE_URL` | Neon Postgres pooled connection string with TLS |
 | `GROQ_API_KEY` | Groq inference/extraction |
+| `GROQ_MODEL` | Defaults to openai/gpt-oss-20b; requested Llama model unavailable |
 | `RESEND_API_KEY` | Sending-only email key |
 | `GOOGLE_CSE_API_KEY` | Optional, eligible Google Custom Search key |
 | `GOOGLE_CSE_ENGINE_ID` | Optional, paired programmable search engine ID |
@@ -56,7 +57,7 @@ Manually run the scheduled workflow or send a GET to `/api/cron/check-prices` wi
 - Scheduled checks persist stock and price, ask AI for deal judgment, suppress first-observation/unavailable/unchanged/duplicate alerts, and email only when `worthNotifying` survives the safety checks. A restock must be a confirmed out-of-stock to in-stock transition. An unknown stock status is not a restock.
 - Search runs only on an alert-worthy change. Atomic daily quota allows at most 95 search attempts/day, leaving headroom below Google's historical free 100/day. Results are constrained to search-provided HTTPS URLs, comparable currency, max three, known prices first.
 - Scraping checks DNS and pins the public address to the HTTPS connection; redirects are independently checked. Private/loopback/link-local IPs, credentials in URLs, nonstandard ports, excessive responses, and non-HTML are rejected.
-- Only the owner receives sandbox emails. Distributed request counters limit email and product creation. HTML email is not used, so scraped text cannot inject email markup.
+- Custom-domain sending supports other recipients; sandbox setups must restrict recipients. Distributed request counters limit email and product creation. HTML email is not used, so scraped text cannot inject email markup.
 - Bought products stop being checked. Savings are first observed price minus recorded purchase price, floored at zero, grouped by currency; no invented exchange rates.
 
 ## Honest limitations
@@ -79,7 +80,7 @@ All services used existing browser sessions; no new account login was created.
 | Neon | Wauul organization, Wael Fezari | New `watchtower` project, `young-mountain-08421044`, Postgres 18, AWS Ohio |
 | Groq | `waelfeza@gmail.com` | Watchtower inference key; replacement expiration tracked in deployment notes |
 | Resend | `wael.fezari@epitech.eu` | Watchtower sending-only key, sandbox sender |
-| Google Cloud | `waelfeza@gmail.com` | Search eligibility being checked; no working integration claimed until verified |
+| Google Cloud | `waelfeza@gmail.com` | Project grounded-gizmo-508515-a8; verified API request returned 403 access denied |
 | Vercel | `wauul`, Hobby | Watchtower hosting |
 
 No credentials belong in this table. See `DEPLOYMENT.md` for the verified deployment outcome.
@@ -93,3 +94,5 @@ pnpm build
 ```
 
 Tests cover localized price parsing, private-IP rejection including IPv4-mapped IPv6, JSON-LD price/currency/stock extraction, and tamper-resistant magic links. End-to-end verification must additionally test live scraping, saved history, AI inference, delivery, authenticated dashboard/product access, unauthorized rejection and a cron invocation.
+
+

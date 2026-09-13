@@ -96,3 +96,11 @@ pnpm build
 Tests cover localized price parsing, private-IP rejection including IPv4-mapped IPv6, JSON-LD price/currency/stock extraction, and tamper-resistant magic links. End-to-end verification must additionally test live scraping, saved history, AI inference, delivery, authenticated dashboard/product access, unauthorized rejection and a cron invocation.
 
 
+
+## Community accounts and search updates
+
+The public homepage is a community feed. `/track` is the tracking form, `/login` signs in or creates a persistent account using an emailed link, and `/account` manages the public display name and sign-out. Product pages offer explicit publish/update/unpublish controls. The public feed selects only the shared snapshot and display name, never email, targets or private price history. No tracked products are shared automatically.
+
+Alternative search now uses `TAVILY_API_KEY` when configured, with Google's integration retained for eligible users. Tavily basic searches are capped at 950 attempts per calendar month within the 1,000-credit free plan. Keep paid usage disabled. The product-page search button is limited to three attempts per product per hour; automatic searches still run only for worthwhile alerts. Prices absent from snippets remain unknown, and search results are not guarantees.
+
+The scraper accepts up to 16 MB of decoded HTML and supports gzip, Brotli and deflate. It validates real image URLs, falls back from stale metadata to product-gallery images and refreshes images during checks. Amazon CAPTCHA/bot protection can still block tracking; no browser challenges are bypassed.

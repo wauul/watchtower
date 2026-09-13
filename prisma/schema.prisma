@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "client"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+model Product {
+  id String @id @default(cuid())
+  url String
+  name String
+  imageUrl String?
+  email String
+  country String
+  currency String
+  targetPrice Decimal? @db.Decimal(12,2)
+  createdAt DateTime @default(now())
+  stock String @default("unknown")
+  boughtAt DateTime?
+  boughtPrice Decimal? @db.Decimal(12,2)
+  lastCheckedAt DateTime?
+  lastError String?
+  history PriceHistory[]
+  analyses DealAnalysis[]
+  alternatives AlternativeDeal[]
+  @@unique([email,url])
+  @@index([email])
+}
+model PriceHistory {
+  id String @id @default(cuid())
+  productId String
+  product Product @relation(fields:[productId],references:[id],onDelete:Cascade)
+  price Decimal @db.Decimal(12,2)
+  stock String @default("unknown")
+  checkedAt DateTime @default(now())
+  @@index([productId,checkedAt])
+}
+model DealAnalysis {
+  id String @id @default(cuid())
+  productId String
+  product Product @relation(fields:[productId],references:[id],onDelete:Cascade)
+  verdict String
+  reasoning String
+  historicalLow Decimal @db.Decimal(12,2)
+  confidence String
+  worthNotifying Boolean
+  createdAt DateTime @default(now())
+  notifiedAt DateTime?
+  alternatives AlternativeDeal[]
+  @@index([productId,createdAt])
+}
+model AlternativeDeal {
+  id String @id @default(cuid())
+  productId String
+  product Product @relation(fields:[productId],references:[id],onDelete:Cascade)
+  dealAnalysisId String
+  dealAnalysis DealAnalysis @relation(fields:[dealAnalysisId],references:[id],onDelete:Cascade)
+  retailer String
+  price Decimal? @db.Decimal(12,2)
+  url String
+  shipsToUser String
+  createdAt DateTime @default(now())
+}
+model RateLimit {
+  key String @id
+  count Int @default(1)
+}
+model JobLock {
+  key String @id
+  expiresAt DateTime
+}

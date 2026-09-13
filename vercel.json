@@ -1,0 +1,1 @@
+{"crons":[{"path":"/api/cron/check-prices","schedule":"0 5 * * *"}],"functions":{"src/app/api/cron/check-prices/route.ts":{"maxDuration":60},"src/app/api/products/route.ts":{"maxDuration":60}}}

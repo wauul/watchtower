@@ -1,0 +1,32 @@
+name: Check watched prices
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: watchtower-check-prices
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger protected check
+        env:
+          WATCHTOWER_URL: ${{ secrets.WATCHTOWER_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$WATCHTOWER_URL" && test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error --max-time 65 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$WATCHTOWER_URL/api/cron/check-prices" > result.json
+          python - <<'PY'
+          import json
+          with open('result.json') as f:
+              result = json.load(f)
+          print(json.dumps(result, indent=2))
+          if any('error' in item for item in result.get('results', [])):
+              raise SystemExit('One or more product checks failed')
+          PY

@@ -18,10 +18,11 @@ export async function alternatives(name:string,country:string,currency:string,so
  const res=await fetch(url,{signal:AbortSignal.timeout(8000)});if(!res.ok)throw new Error('Alternative search is unavailable');
  const body=await res.json();items=(body.items||[]).map((i:any)=>({title:i.title,snippet:i.snippet,url:i.link}));
  }
- if(sourceUrl){const source=new URL(sourceUrl);items=items.filter(i=>{try{const u=new URL(i.url);return u.hostname!==source.hostname||u.pathname.replace(/\/$/,'')!==source.pathname.replace(/\/$/,'');}catch{return false;}});}
+ if(sourceUrl){const source=new URL(sourceUrl);items=items.filter(i=>{try{const u=new URL(i.url);return u.hostname.replace(/^www\./,'')!==source.hostname.replace(/^www\./,'');}catch{return false;}});}
  // Snippets cannot establish shipping guarantees. Keep prices only in the tracked currency;
  // permit only URLs returned by the search provider so model output cannot introduce arbitrary destinations.
  const result=await ask('Identify same-product retail listings, excluding price-comparison aggregators (such as Klarna, idealo or leDenicheur), reviews, forums, accessories, different sizes/models and used items unless the product is used. Return {results:[{retailer,price:number|null,url,shipsToUser:"yes"|"unverified"|"no"}]}, max 3. Price must be explicitly visible in the supplied snippet and in requested currency, otherwise null. Shipping yes/no requires explicit evidence; a country domain alone is insufficient: mark unverified. Do not guess shipping or currency conversions.',{name,country,currency,items},schema);
  return result.results.filter(r=>items.some((i:any)=>i.url===r.url)&&r.shipsToUser!=='no').filter(r=>{try{safeUrl(r.url);return true;}catch{return false;}}).sort((a,b)=>(a.price??Infinity)-(b.price??Infinity));
 }
+
 

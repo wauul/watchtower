@@ -50,12 +50,12 @@ Manually run the scheduled workflow or send a GET to `/api/cron/check-prices` wi
 
 ## Flows and security
 
-- `/`: submit a public HTTPS product URL, optional target, email, and country. Structured Product JSON-LD, Open Graph and Cheerio selectors are tried first. Groq extraction is a fallback for missing name/price. Unknown currency fails closed. Each product starts with a history point.
+- `/track`: submit a public HTTPS product URL, optional target, email, and country. Structured Product JSON-LD, Open Graph and Cheerio selectors are tried first. Groq extraction is a fallback for missing name/price. Unknown currency fails closed. Each product starts with a history point.
 - `/dashboard`: request an emailed signed link. Links expire after 30 days, then exchange into an HttpOnly SameSite cookie. Email addresses and product IDs alone do not authorize API access. Rotate `AUTH_SECRET` to revoke all links and sessions.
 - `/product/[id]`: full chart, latest verdict, alternatives, retailer link, and purchase status.
 - `POST /api/products`, `GET/PATCH /api/products/[id]`, `GET /api/dashboard/[email]`, `POST /api/access`, `GET /api/auth`, and protected `GET /api/cron/check-prices`.
 - Scheduled checks persist stock and price, ask AI for deal judgment, suppress first-observation/unavailable/unchanged/duplicate alerts, and email only when `worthNotifying` survives the safety checks. A restock must be a confirmed out-of-stock to in-stock transition. An unknown stock status is not a restock.
-- Search runs only on an alert-worthy change. Atomic daily quota allows at most 95 search attempts/day, leaving headroom below Google's historical free 100/day. Results are constrained to search-provided HTTPS URLs, comparable currency, max three, known prices first.
+- Automatic search runs on an alert-worthy change; signed-in owners can also request a manual search. Atomic daily quota allows at most 95 search attempts/day, leaving headroom below Google's historical free 100/day. Results are constrained to search-provided HTTPS URLs, comparable currency, max three, known prices first.
 - Scraping checks DNS and pins the public address to the HTTPS connection; redirects are independently checked. Private/loopback/link-local IPs, credentials in URLs, nonstandard ports, excessive responses, and non-HTML are rejected.
 - Custom-domain sending supports other recipients; sandbox setups must restrict recipients. Distributed request counters limit email and product creation. HTML email is not used, so scraped text cannot inject email markup.
 - Bought products stop being checked. Savings are first observed price minus recorded purchase price, floored at zero, grouped by currency; no invented exchange rates.
@@ -72,7 +72,7 @@ Email failure is recorded as a check error. Resend idempotency prevents duplicat
 
 ## Accounts and resources
 
-All services used existing browser sessions; no new account login was created.
+The original services used existing browser sessions. Tavily was subsequently added through the approved Google sign-in flow; the user completed onboarding.
 
 | Service | Existing identity | Resource / purpose |
 | --- | --- | --- |
@@ -82,6 +82,7 @@ All services used existing browser sessions; no new account login was created.
 | Resend | `wael.fezari@epitech.eu` | Watchtower sending-only key, sandbox sender |
 | Google Cloud | `waelfeza@gmail.com` | Project grounded-gizmo-508515-a8; verified API request returned 403 access denied |
 | Vercel | `wauul`, Hobby | Watchtower hosting |
+| Tavily | `waelfeza@gmail.com` | Active free-tier search replacement, key supplied by user |
 
 No credentials belong in this table. See `DEPLOYMENT.md` for the verified deployment outcome.
 
@@ -104,3 +105,4 @@ The public homepage is a community feed. `/track` is the tracking form, `/login`
 Alternative search now uses `TAVILY_API_KEY` when configured, with Google's integration retained for eligible users. Tavily basic searches are capped at 950 attempts per calendar month within the 1,000-credit free plan. Keep paid usage disabled. The product-page search button is limited to three attempts per product per hour; automatic searches still run only for worthwhile alerts. Prices absent from snippets remain unknown, and search results are not guarantees.
 
 The scraper accepts up to 16 MB of decoded HTML and supports gzip, Brotli and deflate. It validates real image URLs, falls back from stale metadata to product-gallery images and refreshes images during checks. Amazon CAPTCHA/bot protection can still block tracking; no browser challenges are bypassed.
+

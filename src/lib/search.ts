@@ -3,7 +3,7 @@ import { ask } from './ai';
 import { db } from './db';
 import { safeUrl } from './scrape';
 const schema=z.object({results:z.array(z.object({retailer:z.string().max(150),price:z.number().positive().nullable(),url:z.string().url(),shipsToUser:z.enum(['yes','unverified','no'])})).max(3)});
-export async function alternatives(name:string,country:string,currency:string){
+export async function alternatives(name:string,country:string,currency:string,sourceUrl?:string){
  const tavily=!!process.env.TAVILY_API_KEY;
  if(!tavily&&(!process.env.GOOGLE_CSE_API_KEY||!process.env.GOOGLE_CSE_ENGINE_ID))throw new Error('Alternative search is not configured');
  // Atomic daily budget is shared by all serverless invocations. No paid overage is requested.
@@ -18,6 +18,7 @@ export async function alternatives(name:string,country:string,currency:string){
  const res=await fetch(url,{signal:AbortSignal.timeout(8000)});if(!res.ok)throw new Error('Alternative search is unavailable');
  const body=await res.json();items=(body.items||[]).map((i:any)=>({title:i.title,snippet:i.snippet,url:i.link}));
  }
+ if(sourceUrl){const source=new URL(sourceUrl);items=items.filter(i=>{try{const u=new URL(i.url);return u.hostname!==source.hostname||u.pathname.replace(/\/$/,'')!==source.pathname.replace(/\/$/,'');}catch{return false;}});}
  // Snippets cannot establish shipping guarantees. Keep prices only in the tracked currency;
  // permit only URLs returned by the search provider so model output cannot introduce arbitrary destinations.
  const result=await ask('Identify same-product retail listings, excluding price-comparison aggregators (such as Klarna, idealo or leDenicheur), reviews, forums, accessories, different sizes/models and used items unless the product is used. Return {results:[{retailer,price:number|null,url,shipsToUser:"yes"|"unverified"|"no"}]}, max 3. Price must be explicitly visible in the supplied snippet and in requested currency, otherwise null. Shipping yes/no requires explicit evidence; a country domain alone is insufficient: mark unverified. Do not guess shipping or currency conversions.',{name,country,currency,items},schema);

@@ -12,7 +12,7 @@ export async function POST(req:Request,{params}:{params:{id:string}}){
  const key=`manual-search:${p.id}:${new Date().toISOString().slice(0,13)}`;
  const rate=await db.rateLimit.upsert({where:{key},create:{key},update:{count:{increment:1}}});
  if(rate.count>3)return Response.json({error:'Please wait an hour before searching again.'},{status:429});
- const results=await alternatives(p.name,p.country,p.currency);
+ const results=await alternatives(p.name,p.country,p.currency,p.url);
  const a=p.analyses[0];
  // Manual search does not send an alert or invent a new price observation.
  await db.dealAnalysis.create({data:{productId:p.id,verdict:a?.verdict||'wait it out',reasoning:a?.reasoning||'More price observations are needed to judge this deal.',historicalLow:a?.historicalLow||Math.min(...p.history.map(h=>Number(h.price))),confidence:a?.confidence||'low',worthNotifying:false,alternatives:{create:results.map(r=>({...r,productId:p.id}))}}});

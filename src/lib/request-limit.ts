@@ -1,0 +1,2 @@
+import {createHash} from 'node:crypto';import {db} from './db';
+export async function limited(scope:string,identity:string,max:number,windowMs=3600000){const bucket=Math.floor(Date.now()/windowMs);const key=scope+':'+bucket+':'+createHash('sha256').update(identity).digest('hex');const row=await db.rateLimit.upsert({where:{key},create:{key,count:1},update:{count:{increment:1}}});return row.count>max;}

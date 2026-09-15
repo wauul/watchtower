@@ -72,6 +72,7 @@ model JobLock {
   expiresAt DateTime
 }
 model User {
+  passwordHash String?
   id String @id @default(cuid())
   email String @unique
   displayName String @default("Watchtower member")
@@ -79,6 +80,7 @@ model User {
   finds SharedFind[]
 }
 model SharedFind {
+  updatedAt DateTime @default(now()) @updatedAt
   id String @id @default(cuid())
   userId String
   user User @relation(fields:[userId],references:[id],onDelete:Cascade)
@@ -93,4 +95,13 @@ model SharedFind {
   published Boolean @default(true)
   createdAt DateTime @default(now())
   @@index([published,createdAt])
+}
+
+model NewsletterSubscriber {
+ id String @id @default(cuid())
+ email String @unique
+ tokenHash String @unique
+ expiresAt DateTime
+ confirmedAt DateTime?
+ createdAt DateTime @default(now())
 }

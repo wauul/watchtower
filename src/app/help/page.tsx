@@ -1,0 +1,3 @@
+import {faqs} from '@/lib/site-content';import {CodeSnippet} from '@/components/code-snippet';
+export const metadata={title:'Help & FAQ'};
+export default function Help(){return <main className="dashboard prose-page"><span className="eyebrow">A LITTLE GUIDANCE</span><h1>Good questions.<br/><em>Clear answers.</em></h1><p>Everything you need to find your feet on the lookout.</p><section className="faq-list">{faqs.map(([q,a])=><details key={q}><summary>{q}</summary><p>{a}</p></details>)}</section><section className="panel"><h2>Running Watchtower locally</h2><p>For contributors: install dependencies, configure your environment using the repository README, then start the app.</p><CodeSnippet code={'npm ci\nnpm run dev'}/></section></main>;}

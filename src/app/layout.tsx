@@ -1,7 +1,6 @@
 import {sessionEmail} from '@/lib/auth';
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { Radar,ArrowUpRight } from 'lucide-react';
+import type {Metadata} from 'next';
+import {Header,Footer,SiteTools} from '@/components/site-shell';
 import './globals.css';
-export const metadata:Metadata={title:'Watchtower — Buy at the right time',description:'A quieter way to track prices, spot real deals, and find your next good buy.'};
-export default function Layout({children}:{children:React.ReactNode}){return <html lang="en"><body><header className="nav"><Link href="/" className="brand"><span className="brand-icon"><Radar size={23}/></span>watchtower<span className="beta">BETA</span></Link><nav><Link href="/">Community</Link><Link href="/track">Track a product</Link><Link href={sessionEmail()?"/account":"/login"}>{sessionEmail()?"Account":"Sign in"}</Link><Link className="nav-dashboard" href="/dashboard">My watchlist <ArrowUpRight size={16}/></Link></nav></header>{children}<footer><Link href="/" className="brand"><Radar size={19}/> watchtower</Link><span>A little patience. A better price.</span><span>Built for thoughtful buying.</span></footer></body></html>;}
+export const metadata:Metadata={title:{default:'Watchtower — Buy at the right time',template:'%s | Watchtower'},description:'Track prices, discover community finds, and buy at the right time.'};
+export default function Layout({children}:{children:React.ReactNode}){return <html lang="en" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{__html:"try{var t=localStorage.getItem('watchtower-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}"}}/></head><body><a className="skip-link" href="#content">Skip to content</a><Header signedIn={!!sessionEmail()}/><div id="content" tabIndex={-1}>{children}</div><Footer/><SiteTools/></body></html>;}

@@ -1,0 +1,3 @@
+'use client';
+import {useRef} from 'react';
+export function ConfirmButton({children,title,description,onConfirm,disabled=false}:{children:React.ReactNode;title:string;description:string;onConfirm:()=>void;disabled?:boolean}){const dialog=useRef<HTMLDialogElement>(null);return <><button type="button" className="secondary" disabled={disabled} onClick={()=>dialog.current?.showModal()}>{children}</button><dialog ref={dialog} className="confirm-dialog" aria-label={title}><h2>{title}</h2><p>{description}</p><div className="community-actions"><button autoFocus type="button" className="secondary" onClick={()=>dialog.current?.close()}>Cancel</button><button type="button" className="primary" onClick={()=>{dialog.current?.close();onConfirm();}}>Confirm</button></div></dialog></>;}

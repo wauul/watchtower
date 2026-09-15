@@ -14,6 +14,9 @@ importers:
       '@prisma/client':
         specifier: 6.19.0
         version: 6.19.0(prisma@6.19.0(typescript@5.8.3))(typescript@5.8.3)
+      '@vercel/speed-insights':
+        specifier: ^2.0.0
+        version: 2.0.0(next@14.2.35(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       cheerio:
         specifier: 1.0.0
         version: 1.0.0
@@ -844,6 +847,32 @@ packages:
 
   '@vercel/rust@1.0.4':
     resolution: {integrity: sha512-G0uO7+j0c/r1vlumlC6KgBfAq9/eip43C96fxnhoN6aeesChrFh8dTeU6Qh9E26AGzHYBENjkpw0Qk4/FbI1ww==}
+
+  '@vercel/speed-insights@2.0.0':
+    resolution: {integrity: sha512-jwkNcrTeafWxjmWq4AHBaptSqZiJkYU5adLC9QBSqeim0GcqDMgN5Ievh8OG1rJ6W3A4l1oiP7qr9CWxGuzu3w==}
+    peerDependencies:
+      '@sveltejs/kit': ^1 || ^2
+      next: '>= 13'
+      nuxt: '>= 3'
+      react: ^18 || ^19 || ^19.0.0-rc
+      svelte: '>= 4'
+      vue: ^3
+      vue-router: ^4
+    peerDependenciesMeta:
+      '@sveltejs/kit':
+        optional: true
+      next:
+        optional: true
+      nuxt:
+        optional: true
+      react:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+      vue-router:
+        optional: true
 
   '@vercel/static-build@2.8.23':
     resolution: {integrity: sha512-T5/O85fG1I6ETuNx27oD6UQAAVGAvODPihF2IXqxRPymGZwnuX4pmLAKeEHVp/DAu2LiYFafjZM10cvPFUnCoA==}
@@ -3080,6 +3109,11 @@ snapshots:
     dependencies:
       '@iarna/toml': 2.2.5
       execa: 5.1.1
+
+  '@vercel/speed-insights@2.0.0(next@14.2.35(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
+    optionalDependencies:
+      next: 14.2.35(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
 
   '@vercel/static-build@2.8.23':
     dependencies:

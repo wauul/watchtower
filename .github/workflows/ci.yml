@@ -1,0 +1,52 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Dummy build values only. Testcontainers supplies its own disposable database URL.
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:1/offline
+      AUTH_SECRET: ci-only-not-a-production-secret
+      APP_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 8
+          max_attempts: 3
+          command: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Lint if configured
+        run: npm run lint --if-present
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit tests (external services mocked)
+        run: npm run test:unit
+      - name: Pull disposable database image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          command: docker pull postgres:18-alpine && docker pull testcontainers/ryuk:0.14.0
+      - name: Integration tests (Testcontainers, no service secrets)
+        run: npm run test:integration
+      - name: Production build
+        run: npm run build
+

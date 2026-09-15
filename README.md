@@ -106,3 +106,45 @@ Alternative search now uses `TAVILY_API_KEY` when configured, with Google's inte
 
 The scraper accepts up to 16 MB of decoded HTML and supports gzip, Brotli and deflate. It validates real image URLs, falls back from stale metadata to product-gallery images and refreshes images during checks. Amazon CAPTCHA/bot protection can still block tracking; no browser challenges are bypassed.
 
+
+## Automated testing and CI
+
+[![CI](https://github.com/wauul/watchtower/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wauul/watchtower/actions/workflows/ci.yml)
+
+Use Node.js 22 or 24. CI uses Node 22 and `npm ci` with the committed npm lockfile. The existing pnpm lockfile is retained and synchronized for the Vercel deployment; application dependencies and architecture are unchanged.
+
+```sh
+npm ci
+npm run test:unit             # 48 deterministic tests; no Docker needed
+npm run test:integration      # disposable PostgreSQL 18; Docker required
+npm test                     # unit + integration projects
+npm run test:watch            # watch unit tests
+npm run test:coverage         # both projects; Docker required
+npm run test:coverage -- --project unit  # unit-only coverage without Docker
+npm run typecheck
+npm run build
+```
+
+Install/start Docker Desktop with Linux containers before integration tests. Testcontainers starts `postgres:18-alpine`, applies the real Prisma migrations and stops the container after testing. It never accepts an external `DATABASE_URL`; the container-generated URL is passed to the test worker. Missing Docker causes a failure, never a silent skip or a Neon fallback. On the original development PC Docker was not installed, so database integration tests must be validated on the GitHub runner until Docker is available locally.
+
+Tests cover:
+
+- Price normalization, URL/IP validation, signed-link tampering, real Amazon markup, compression/size bounds and gallery-image fallback.
+- AI response validation, historical-low correction, sparse-history confidence, first-observation/out-of-stock suppression and malformed/rate-limited responses.
+- Strict 3% drop boundary, target crossings, confirmed restocks, 24-hour cooldown, model veto, conditional alternative search, combined email, and email/search outages.
+- Tavily and Google interfaces, empty results, quota exhaustion, original-retailer exclusion, URL provenance and unknown-price ordering.
+- Actual create/read/update/cron route behavior with real Prisma/Postgres: initial and subsequent observations, duplicates, ownership, failure persistence, combined alert records, freshness and cron locks.
+
+The test-time layer mocks retailer HTTPS/DNS, Groq, Tavily/Google and Resend. Unmocked `fetch`/HTTP calls fail immediately. Integration tests mock external boundaries while retaining the real database adapter, schema, migrations and check/route logic. No real product page, API key, production database or email service is used in tests. The production build prerenders no database-dependent pages; it does not invoke scraping or cron routes.
+
+CI runs on pushes and pull requests to main: locked install, lint if configured, type checking, unit tests, Testcontainers integration tests and a production build. This project has no lint script, so the conditional lint step is a no-op. Only package installation and container-image downloads are retried (up to three times); tests and builds are not retried. Registry/GitHub/Docker image availability is an infrastructure dependency, not a live product-data dependency.
+
+The existing `check-prices.yml` is the production scheduler, not CI. It intentionally calls the real protected endpoint on its schedule/manual dispatch and is unchanged. The new `ci.yml` never triggers it. Its five latest runs were successful during this audit; there was no prior push/PR CI workflow to attribute intermittent test failures to.
+
+### Amazon regression diagnosis
+
+The user confirmed the B07GXS35PG BISSELL link. A fresh anonymous capture on September 15 returned 2,460,279 decoded bytes and a displayed/extracted price of EUR 149.99. The current scraper correctly handled it. The previously observed missing-price failure was caused by the former 2 MB limit and absent gzip decoding, already fixed before this testing task. No new application-code fix or structural scraping change was warranted. Different earlier price observations alone do not establish a parsing bug.
+
+`tests/fixtures/amazon-b07gxs35pg.html` contains actual relevant markup in its original DOM order. Tests cover that exact price plus compressed responses containing more than 2 MB of decoded HTML. The fixture notes explain provenance and limitations. JavaScript-only prices are separately tested: AI fallback engages, and a null extraction produces an explicit failure rather than an invented price.
+
+Manual/live checks remain necessary for current retailer markup, regional/variant prices, CAPTCHA/JavaScript restrictions, real AI judgment, actual shipping/stock, email inbox delivery and deployed cron authentication/scheduling. CI verifies the code's deterministic behavior, not the truth of changing retailer listings or a model's judgment. Trigger live cron manually only after deployment when desired; never from CI.

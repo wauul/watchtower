@@ -1,0 +1,11 @@
+import {test,expect,vi} from 'vitest';
+import {analyze,ask,verdictSchema} from '../../src/lib/ai';
+const verdict={verdict:'great deal',reasoning:'Price fell',historicalLow:999,confidence:'high',worthNotifying:true};
+function response(value:unknown=verdict){vi.stubEnv('GROQ_API_KEY','test');vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({choices:[{message:{content:JSON.stringify(value)}}]})));}
+const data={name:'Camera',history:[{price:100,checkedAt:'2026-09-01'},{price:90,checkedAt:'2026-09-02'}],currentPrice:80,targetPrice:85,stock:'in_stock',previousStock:'in_stock'};
+test('historical low is calculated, not trusted from AI; sparse history lowers confidence',async()=>{response();expect(await analyze(data)).toMatchObject({historicalLow:80,confidence:'low',worthNotifying:true});const request=JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string);expect(JSON.parse(request.messages[1].content)).toEqual(data);expect(request.messages[0].content).toContain('untrusted data');});
+test.each([{history:[{price:100,checkedAt:'2026-09-01'}]},{stock:'out_of_stock'}])('suppresses unsafe alert conditions %o',async override=>{response();expect((await analyze({...data,...override})).worthNotifying).toBe(false);});
+test('sufficient history preserves model confidence and model veto',async()=>{response({...verdict,worthNotifying:false});expect(await analyze({...data,history:Array.from({length:5},(_,i)=>({price:100+i,checkedAt:'2026-09-01'}))})).toMatchObject({confidence:'high',worthNotifying:false});});
+test('rate limit propagates without pretending analysis succeeded',async()=>{vi.stubEnv('GROQ_API_KEY','test');vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response('',{status:429})));await expect(analyze(data)).rejects.toThrow('AI service returned 429');});
+test('malformed JSON and invalid verdicts fail closed',async()=>{response({verdict:'buy now'});await expect(analyze(data)).rejects.toThrow();vi.mocked(fetch).mockResolvedValue(Response.json({choices:[{message:{content:'not-json'}}]}));await expect(analyze(data)).rejects.toThrow();});
+test('missing credentials never hit network',async()=>{await expect(ask('test',{},verdictSchema)).rejects.toThrow('not configured');expect(fetch).not.toHaveBeenCalled();});

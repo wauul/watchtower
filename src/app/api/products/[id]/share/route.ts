@@ -1,3 +1,4 @@
+import {discountSnapshot} from '@/lib/deal-feed';
 import {db} from '@/lib/db';
 import {sessionEmail} from '@/lib/auth';
 import {accountFor} from '@/lib/account';
@@ -14,7 +15,8 @@ export async function POST(req:Request,{params}:{params:{id:string}}){
  if(!product.history[0])return Response.json({error:'A recorded price is needed before sharing.'},{status:422});
  const user=await accountFor(email);
  // Publish only an explicit snapshot. Email, target price and private history never enter the feed.
- const data={userId:user.id,name:product.name,url:product.url,imageUrl:product.imageUrl,price:product.history[0].price,currency:product.currency,note:input.note,published:true};
+ const observations=await db.priceHistory.findMany({where:{productId:product.id},orderBy:[{checkedAt:'asc'},{id:'asc'}],select:{price:true}});
+ const data={...discountSnapshot(observations.length>=2?[Number(observations[0].price),Number(product.history[0].price)]:[]),userId:user.id,name:product.name,url:product.url,imageUrl:product.imageUrl,price:product.history[0].price,currency:product.currency,note:input.note,published:true};
  await db.sharedFind.upsert({where:{productId:product.id},create:{...data,productId:product.id},update:data});
  return Response.json({ok:true});
  }catch(e){return failure(e);}

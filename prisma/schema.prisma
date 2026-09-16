@@ -78,8 +78,12 @@ model User {
   displayName String @default("Watchtower member")
   createdAt DateTime @default(now())
   finds SharedFind[]
+  votes DealVote[]
 }
 model SharedFind {
+  referencePrice Decimal? @db.Decimal(12,2)
+  discountPercent Decimal? @db.Decimal(7,2)
+  votes DealVote[]
   updatedAt DateTime @default(now()) @updatedAt
   id String @id @default(cuid())
   userId String
@@ -104,4 +108,15 @@ model NewsletterSubscriber {
  expiresAt DateTime
  confirmedAt DateTime?
  createdAt DateTime @default(now())
+}
+
+model DealVote {
+ id String @id @default(cuid())
+ userId String
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ findId String
+ find SharedFind @relation(fields:[findId],references:[id],onDelete:Cascade)
+ value Int
+ @@unique([userId,findId])
+ @@index([findId,value])
 }

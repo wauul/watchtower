@@ -1,5 +1,7 @@
 # Watchtower
 
+[![CI](https://github.com/wauul/watchtower/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wauul/watchtower/actions/workflows/ci.yml)
+
 A small, full-stack price and restock tracker. Next.js 14 App Router, React, Tailwind, Prisma/Postgres on Neon, Cheerio, Groq `openai/gpt-oss-20b`, Resend and Recharts.
 
 ## Current service constraints
@@ -108,8 +110,6 @@ The scraper accepts up to 16 MB of decoded HTML and supports gzip, Brotli and de
 
 
 ## Automated testing and CI
-
-[![CI](https://github.com/wauul/watchtower/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/wauul/watchtower/actions/workflows/ci.yml)
 
 Use Node.js 22 or 24. CI uses Node 22 and `npm ci` with the committed npm lockfile. The existing pnpm lockfile is retained and synchronized for the Vercel deployment; application dependencies and architecture are unchanged.
 

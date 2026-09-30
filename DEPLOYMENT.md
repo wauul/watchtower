@@ -1,4 +1,24 @@
-# Deployment verification — September 14, 2026
+# Deployment verification
+
+## September 30, 2026 release
+
+Live: https://watchtower-six-umber.vercel.app
+
+Release PR: https://github.com/wauul/watchtower/pull/3 (merged). Code merge: `31b12beefd1a6fb67af6f878481d86e75de2a569`.
+
+The complete Price Observatory redesign is deployed with the user's blue palette, deliberate light/dark themes, responsive route layouts, shared accessible controls, revised copy and improved structured/gallery image retrieval. The direction makes observed prices, status and private/public boundaries legible through the radar mark, observation dots and fine chart/rule treatment. The complete checklist and browser evidence are in DESIGN_VERIFICATION.md.
+
+Google sign-in is configured in existing Google Cloud project `grounded-gizmo-508515-a8`. The consent app is external and published; the web client registers the production callback and localhost development callback. It requests only OpenID, email and profile. Client credentials are in Vercel's production/development environment; the production secret is sensitive. Existing database, session, email and provider secrets were preserved.
+
+Vercel deployment `dpl_DBJysRCyBsaMoeVRbMwqnXt3JDmR` reached Ready and the production alias was promoted. The production build applied `20260930160000_google_sign_in` successfully; earlier migrations were already applied. Preview builds do not migrate the shared database.
+
+CI: https://github.com/wauul/watchtower/actions/runs/36725746792 . Locked install, type checking, **93 unit tests**, **17 PostgreSQL 18 integration tests** and production build passed. There is no separate lint script. Real Google sign-in was verified locally and on production. Production retained the owner's existing `Wauul` profile, published find and BISSELL watchlist item with all 40 observations. Its actual retailer image decoded at 1089 pixels wide. Thirty hosted views covered both themes at mobile/tablet/desktop widths without overflow or missing rendered images. Mobile dialog cancellation, the full history table, eight public routes, cron rejection and invalid OAuth callback recovery were also verified. No hosted browser errors were observed.
+
+Google's separate brand check reports that the homepage must be registered to its owner. A Watchtower-only URL-prefix Search Console property was added and Google's public ownership file is retained in `public/google7dc2b9b5e73e2aaa.html`. Google requests a 24-hour wait after ownership verification before retrying branding. Until that process completes, Google's chooser displays the production hostname; Google sign-in already works. No sensitive/restricted-scope review is required for the basic identity scopes.
+
+Concrete remaining limits: the existing Amazon listing currently requests browser verification, so its saved photo/history remain visible while new automated checks may fail. No challenge was bypassed and no prices were fabricated. Real email, alternative searches, scheduled checks and destructive production actions were not exercised during this release. Existing provider quotas and dependency audit findings remain.
+
+## Historical verification — September 14, 2026
 
 Live: https://watchtower-six-umber.vercel.app
 

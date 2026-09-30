@@ -36,6 +36,8 @@ The Prisma JavaScript engine and official Postgres adapter support Windows ARM w
 | `GOOGLE_CSE_ENGINE_ID` | Optional, paired programmable search engine ID |
 | `CRON_SECRET` | Random 32-byte secret for scheduler authentication |
 | `AUTH_SECRET` | Independent random 32-byte key signing email links |
+| `GOOGLE_CLIENT_ID` | Optional Google OAuth web client ID, for Google sign-in |
+| `GOOGLE_CLIENT_SECRET` | Matching OAuth secret; server only |
 | `APP_URL` | Public HTTPS production origin; localhost for development |
 | `EMAIL_FROM` | Verified sender, defaults to sandbox `onboarding@resend.dev` |
 | `ALLOWED_EMAIL` | Sandbox owner email; remove only with a verified sending domain |
@@ -44,7 +46,7 @@ Generate each secret separately with `node -e "console.log(require('crypto').ran
 
 ## Deploy
 
-Import the GitHub repository into Vercel, choose Next.js, set all required environment variables, use `pnpm build`, and deploy. Run `pnpm exec prisma migrate deploy` against the production database before accepting traffic. Set `APP_URL` to the assigned production URL and redeploy.
+Import the GitHub repository into Vercel, choose Next.js, set all required environment variables, and deploy. The configured Vercel build applies pending Prisma migrations in production before building; preview builds never migrate the shared database. A failed migration blocks promotion. For another host, run `pnpm exec prisma migrate deploy` against the production database before accepting traffic. Set `APP_URL` to the assigned production URL and redeploy.
 
 For six-hour checks, configure GitHub Actions repository secrets `WATCHTOWER_URL` and `CRON_SECRET`. The public repository uses GitHub's free hosted runner allocation. Scheduled Actions can be delayed or disabled after extended repository inactivity. The daily Vercel cron is a fallback; a five-hour freshness guard avoids duplicate checks.
 
@@ -115,7 +117,7 @@ Use Node.js 22 or 24. CI uses Node 22 and `npm ci` with the committed npm lockfi
 
 ```sh
 npm ci
-npm run test:unit             # 48 deterministic tests; no Docker needed
+npm run test:unit             # deterministic tests; no Docker needed
 npm run test:integration      # disposable PostgreSQL 18; Docker required
 npm test                     # unit + integration projects
 npm run test:watch            # watch unit tests
@@ -151,7 +153,7 @@ Manual/live checks remain necessary for current retailer markup, regional/varian
 
 ## Site experience and accounts
 
-The interface now includes persistent light/dark themes, sticky navigation, an accessible mobile menu, search with an explicit close control, scroll progress and back-to-top controls, a skip link, reduced-motion-aware loading states, contact/help/privacy pages, expandable FAQs, print styles and a designed 404 page. Outbound website links carry `utm_source=watchtower`, `utm_medium=referral`, and `utm_campaign=community`; stored scraper URLs are unchanged. No analytics cookies or analytics service were added. Contact currently opens the repository’s public issue form (GitHub login required).
+The Price Observatory interface includes persistent light/dark themes, sticky navigation, an accessible mobile menu, search with an explicit close control, a back-to-top control, a skip link, reduced-motion-aware loading states, contact/help/privacy pages, expandable FAQs, print styles and a designed 404 page. Self-hosted fonts, semantic colors and shared controls are documented in DESIGN.md; route and state coverage is recorded in DESIGN_VERIFICATION.md. Outbound website links carry `utm_source=watchtower`, `utm_medium=referral`, and `utm_campaign=community`; stored scraper URLs are unchanged. The layout mounts Vercel Analytics and Speed Insights; privacy copy reflects those services. Contact opens the repository’s public issue form (GitHub login required).
 
 Search covers site pages, FAQ content, public find names/notes, and the signed-in owner's product names. Anonymous visitors cannot query private products; each product section returns up to 30 matches. Public finds show an `updatedAt` timestamp; pre-existing posts start with their original publication date because historical edit dates were not recorded.
 
@@ -170,3 +172,11 @@ Signed-in accounts can like or dislike a published find, switch their reaction, 
 Homepage sorts: **Most recent** uses publication time; **Most liked** uses the number of likes (dislikes are shown separately); **Best discounts** uses the percentage decrease from the first tracked price to the published snapshot price. Discount snapshots require at least two observations, never substitute the highest price or a retailer list price, and remain unknown when history is insufficient. Unknown discounts sort last; ties use newest publication then stable ID. Ranking happens across all published finds before returning the top 60. Republish a find to update its snapshot; reactions do not change its post update timestamp.
 
 Migration `20260916010000_deal_votes` adds reaction constraints and discount snapshots. Existing finds are backfilled only using observations at or before their last update. Verification includes 64 unit tests and 15 real-Postgres integration tests, covering deletion cascades, authorization, reaction switching, unpublished finds and ordering beyond the 60-item page boundary.
+
+## Google sign-in
+
+Google sign-in uses the existing Watchtower account and session system. In Google Auth Platform, create a **Web application** client and register the exact callback `${APP_URL}/api/auth/google/callback`. Local development uses `http://localhost:3000/api/auth/google/callback`. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on the server, and keep `APP_URL` at the registered origin. Publish the external consent application for production use. Only `openid`, `email` and `profile` are requested; no Gmail, Drive or offline access is requested.
+
+The authorization-code flow uses PKCE, state and nonce, with a signed, ten-minute HttpOnly transaction cookie. The official Google library verifies signed ID tokens, issuer, audience and expiry. Watchtower stores the Google subject identifier, email and initial display name, and does not persist Google access or refresh tokens. Existing names, passwords, watchlists and public finds remain attached to the same account. Gmail and Google Workspace identities can link an existing account with the verified matching email. Other email domains first sign in through Watchtower, then choose **Connect Google** in Account; linking requires the same verified session throughout the callback.
+
+Migration `20260930160000_google_sign_in` adds a nullable, unique Google subject to User. Apply it before serving the new code; the Vercel production build does this automatically. There are 25 deterministic Google-authentication tests covering identity verification, browser/session binding, account linking and callback behavior, bringing the unit suite to 93 tests. Google’s official icon and the small Google Sans font subset are used only for its branded sign-in control; font licensing is included in `public/fonts`.

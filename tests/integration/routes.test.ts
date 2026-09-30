@@ -39,3 +39,26 @@ test('reactions are idempotent, switchable and removable with one vote per accou
 test('voting rejects anonymous, cross-origin, invalid and unpublished requests',async()=>{const {f}=await shared();const params={params:{id:f.id}};m.owner.email='';expect((await reactToDeal(request({value:1}),params)).status).toBe(401);m.owner.email=input.email;expect((await reactToDeal(new Request(origin,{method:'POST'}),params)).status).toBe(403);expect((await reactToDeal(request({value:2}),params)).status).toBe(400);await db.sharedFind.update({where:{id:f.id},data:{published:false}});expect((await reactToDeal(request({value:1}),params)).status).toBe(404);expect(await db.dealVote.count()).toBe(0);});
 test('only the owner can delete a product, cascading its history, analysis, shared find and votes',async()=>{const {p,f}=await shared();await reactToDeal(request({value:1}),{params:{id:f.id}});const analysis=await db.dealAnalysis.create({data:{productId:p.id,verdict:'great deal',reasoning:'Test',historicalLow:80,confidence:'low',worthNotifying:true}});await db.alternativeDeal.create({data:{productId:p.id,dealAnalysisId:analysis.id,retailer:'Other',price:70,url:'https://other.example/item',shipsToUser:'unverified'}});m.owner.email='other@example.test';expect((await removeProduct(request({}),{params:{id:p.id}})).status).toBe(404);expect(await db.product.count()).toBe(1);m.owner.email='';expect((await removeProduct(request({}),{params:{id:p.id}})).status).toBe(401);m.owner.email=input.email;expect((await removeProduct(new Request(origin,{method:'DELETE'}),{params:{id:p.id}})).status).toBe(403);expect((await removeProduct(request({}),{params:{id:p.id}})).status).toBe(200);for(const count of await Promise.all([db.product.count(),db.priceHistory.count(),db.dealAnalysis.count(),db.alternativeDeal.count(),db.sharedFind.count(),db.dealVote.count()]))expect(count).toBe(0);});
 test('feed ranks all published deals before the 60 item limit and keeps unknown discounts last',async()=>{const user=await db.user.upsert({where:{email:input.email},create:{email:input.email},update:{}});const ids=Array.from({length:62},(_,i)=>'rank-'+i);await db.product.createMany({data:ids.map(id=>({id,url:'https://retailer.example/'+id,name:id,email:input.email,country:'France',currency:'EUR'}))});await db.sharedFind.createMany({data:ids.map((id,i)=>({id,productId:id,userId:user.id,name:id,url:'https://retailer.example/'+id,price:80,currency:'EUR',note:'',createdAt:new Date(1700000000000+i*1000),referencePrice:i===0?100:null,discountPercent:i===0?20:null}))});await db.dealVote.create({data:{findId:ids[0],userId:user.id,value:1}});expect((await dealFeed('recent'))[0].id).toBe('rank-61');const liked=await dealFeed('liked',user.id);expect(liked).toHaveLength(60);expect(liked[0]).toMatchObject({id:'rank-0',likes:1,myVote:1});expect((await dealFeed('discount'))[0].id).toBe('rank-0');await db.sharedFind.update({where:{id:'rank-0'},data:{published:false}});expect((await dealFeed('liked')).some(f=>f.id==='rank-0')).toBe(false);});
+
+import {accountForGoogle} from '../../src/lib/google-auth';
+test('Google linking preserves a legacy account, private history and public find in Postgres',async()=>{
+ const {p,f}=await shared();
+ const legacy=await db.user.update({where:{email:input.email},data:{googleSubject:null,displayName:'Existing shopper',passwordHash:'existing-test-hash'}});
+ const profile={sub:'integration-google-owner',email:'verified-google@gmail.com',email_verified:true as const,name:'Google name'};
+ const linked=await accountForGoogle(profile,input.email);
+ expect(linked.id).toBe(legacy.id);
+ expect(await db.user.findUniqueOrThrow({where:{id:legacy.id}})).toMatchObject({googleSubject:profile.sub,displayName:'Existing shopper',passwordHash:'existing-test-hash'});
+ expect((await accountForGoogle({...profile,email:'changed-google@gmail.com'})).id).toBe(legacy.id);
+ expect(await db.product.findUniqueOrThrow({where:{id:p.id}})).toMatchObject({email:input.email});
+ expect(await db.priceHistory.count({where:{productId:p.id}})).toBe(2);
+ expect(await db.sharedFind.findUniqueOrThrow({where:{id:f.id}})).toMatchObject({userId:legacy.id,published:true});
+});
+test('concurrent Google linking permits only one Watchtower account per subject in Postgres',async()=>{
+ const emails=['google-race-one@example.test','google-race-two@example.test'];
+ for(const email of emails)await db.user.upsert({where:{email},create:{email},update:{googleSubject:null}});
+ const profile={sub:'integration-google-race',email:'race@gmail.com',email_verified:true as const};
+ const attempts=await Promise.allSettled(emails.map(email=>accountForGoogle(profile,email)));
+ expect(attempts.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+ expect(attempts.filter(r=>r.status==='rejected')).toHaveLength(1);
+ expect(await db.user.count({where:{googleSubject:profile.sub}})).toBe(1);
+});

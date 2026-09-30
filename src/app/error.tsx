@@ -1,2 +1,3 @@
 'use client';
-export default function ErrorPage({reset}:{reset:()=>void}){return <main className="access"><h1>A brief interruption.</h1><p>We couldn’t load this page. Please try again.</p><button className="primary" onClick={reset}>Try again</button></main>;}
+import {AlertCircle} from 'lucide-react';
+export default function ErrorPage({reset}:{reset:()=>void}){return <main className="dashboard error-page"><AlertCircle size={36} aria-hidden="true"/><h1>We couldn’t load this page</h1><p>Your connection or one of our services may be unavailable. Try loading the page again.</p><div className="community-actions"><button className="primary" onClick={reset}>Try again</button></div></main>;}

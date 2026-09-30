@@ -72,6 +72,7 @@ model JobLock {
   expiresAt DateTime
 }
 model User {
+  googleSubject String? @unique
   passwordHash String?
   id String @id @default(cuid())
   email String @unique

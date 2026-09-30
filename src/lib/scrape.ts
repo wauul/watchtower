@@ -22,6 +22,17 @@ export async function resource(raw:string,kind:"html"|"image"="html",depth=0):Pr
  });const deadline=setTimeout(()=>req.destroy(new Error('Retailer timed out')),kind==='html'?15000:3000);req.on('close',()=>clearTimeout(deadline));req.on('error',reject);});
 }
 export function parsePrice(value:unknown):number|null{if(typeof value==='number')return Number.isFinite(value)&&value>0?value:null;if(typeof value!=='string')return null;let s=value.replace(/[^\d.,]/g,'');if(s.includes(',')&&s.includes('.'))s=s.lastIndexOf(',')>s.lastIndexOf('.')?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');else if(/,\d{2}$/.test(s))s=s.replace(',','.');else s=s.replace(/,/g,'');const n=Number(s);return n>0&&n<1e10?n:null;}
+function imageValues(value:unknown):string[]{
+ if(typeof value==='string')return [value];
+ if(Array.isArray(value))return value.flatMap(imageValues);
+ if(value&&typeof value==='object'){const image=value as Record<string,unknown>;return [image.contentUrl,image.url,image.thumbnailUrl].flatMap(v=>typeof v==='string'?[v]:[]);}
+ return [];
+}
+function srcsetImages(value:string|undefined):string[]{
+ if(!value)return [];const entries:{url:string;size:number}[]=[];let rest=value.trim();
+ while(rest){rest=rest.replace(/^[\s,]+/,'');const match=/^\S+/.exec(rest);if(!match)break;let url=match[0];rest=rest.slice(url.length).trimStart();if(url.endsWith(',')){url=url.replace(/,+$/,'');entries.push({url,size:0});continue;}const comma=rest.indexOf(',');const descriptor=comma<0?rest:rest.slice(0,comma);rest=comma<0?'':rest.slice(comma+1);entries.push({url,size:parseFloat(descriptor)||0});}
+ return entries.sort((a,b)=>b.size-a.size).map(e=>e.url);
+}
 export function extract(html:string,url:string){
  const $=cheerio.load(html);if($('form[action*="validateCaptcha"], #captchacharacters').length)throw new Error('Retailer requires a browser verification; this page cannot be tracked automatically right now');let product:any;const walk=(x:any)=>{if(!x||typeof x!=='object')return;if([x['@type']].flat().includes('Product')&&!product)product=x;for(const v of Object.values(x))if(v&&typeof v==='object'){if(Array.isArray(v))v.forEach(walk);else walk(v);}};
  $('script[type="application/ld+json"]').each((_,el)=>{try{walk(JSON.parse($(el).text()));}catch{}});
@@ -31,10 +42,14 @@ export function extract(html:string,url:string){
  const currency=offer?.priceCurrency||$('meta[property="product:price:currency"]').attr('content')||$('[itemprop="priceCurrency"]').attr('content')||($('#corePriceDisplay_desktop_feature_div, #corePrice_feature_div').text().includes('€')?'EUR':$('#corePriceDisplay_desktop_feature_div, #corePrice_feature_div').text().includes('£')?'GBP':$('body').text().includes('£')?'GBP':null);
  const availability=String(offer?.availability||$('[itemprop="availability"]').attr('href')||$('.availability, #availability').text());
  const stock=/OutOfStock|SoldOut|out of stock/i.test(availability)?'out_of_stock':/InStock|in stock/i.test(availability)?'in_stock':'unknown';
- let image=Array.isArray(product?.image)?product.image[0]:product?.image;image=typeof image==='object'?image?.url:image;image=image||$('meta[property="og:image"]').attr('content')||$('.product_main img, .thumbnail img').first().attr('src');
- const candidates:unknown[]=[image,$('meta[name="twitter:image"]').attr('content'),$('#landingImage').attr('data-old-hires'),$('#landingImage').attr('src')];
+ const candidates:unknown[]=[...imageValues(product?.image),$('meta[property="og:image"], meta[property="og:image:url"]').first().attr('content'),$('meta[name="twitter:image"], meta[property="twitter:image"]').first().attr('content'),$('#landingImage').attr('data-old-hires')];
+ const gallery='.product_main img, .thumbnail img, .product-image img, .product-gallery img, .product__media img, [itemprop="image"], [data-product-image], #landingImage';
  // Retailer metadata may be stale. Include the actual product gallery and matching alt text.
- $('img').each((_,el)=>{const img=$(el);const alt=(img.attr('alt')||'').toLowerCase();if((name&&alt.includes(String(name).toLowerCase()))||img.is('[itemprop="image"], .product_main img, .product-image img'))candidates.push(img.attr('data-src'),img.attr('src'));});
+ $('img').each((_,el)=>{const img=$(el);const alt=(img.attr('alt')||'').toLowerCase();if((name&&alt.includes(String(name).toLowerCase()))||img.is(gallery)){
+  try{const dynamic=JSON.parse(img.attr('data-a-dynamic-image')||'{}');candidates.push(...Object.entries(dynamic).sort((a,b)=>{const area=(v:unknown)=>Array.isArray(v)?Number(v[0])*Number(v[1]):0;return area(b[1])-area(a[1]);}).map(([url])=>url));}catch{}
+  img.closest('picture').find('source').each((_,source)=>{candidates.push(...srcsetImages($(source).attr('data-srcset')||$(source).attr('srcset')));});
+  candidates.push(...srcsetImages(img.attr('data-srcset')||img.attr('srcset')),img.attr('data-src'),img.attr('data-lazy-src'),img.attr('data-original'),img.attr('src'));
+ }});
  const imageCandidates=[...new Set(candidates.flatMap(value=>{try{return typeof value==='string'?[safeUrl(new URL(value,url).href).href]:[];}catch{return [];}}))].slice(0,8);
  const imageUrl=imageCandidates[0]||null;
  $('script,style,noscript,nav,footer').remove();return {name:String(name||'').slice(0,300),price,currency,stock,imageUrl,imageCandidates,text:$('body').text().replace(/\s+/g,' ').slice(0,18000)};

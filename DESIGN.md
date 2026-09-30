@@ -211,8 +211,8 @@ Theme is assigned before hydration from a saved override or system preference. T
 
 ## Typography
 
-**Display Font:** Space Grotesk, sans-serif fallback  
-**Body Font:** IBM Plex Sans, sans-serif fallback  
+**Display Font:** Space Grotesk, sans-serif fallback
+**Body Font:** IBM Plex Sans, sans-serif fallback
 **Code Font:** ui-monospace, monospace fallback
 
 Both primary fonts are self-hosted variable Latin WOFF2 files. Their SIL Open Font Licenses are retained in public/fonts. The pairing makes major decisions recognizable while keeping dense task text readable. Font sizes use rem units; chart library tick/tooltips retain their explicit numeric sizing.
@@ -310,4 +310,3 @@ Read [Taste](https://github.com/Leonxlnx/taste-skill) marketing/redesign guidanc
 ### Coverage and verification
 
 The completed route, interaction-state, theme and viewport checklist, performed checks and concrete limitations are recorded in [DESIGN_VERIFICATION.md](DESIGN_VERIFICATION.md). This design document describes durable shipped rules; it does not turn isolated visual-test fixture data into product claims.
-

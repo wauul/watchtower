@@ -1,6 +1,6 @@
 # Watchtower redesign coverage
 
-The repository was audited at `d8aa5e7` before implementation. The existing track and login interfaces were inspected in a running browser before edits. The redesigned app preserves the Next.js App Router, Prisma schema, API paths, ownership checks, data shapes and service integrations. No production data or credentials were used in verification.
+The repository was audited at `d8aa5e7` before implementation. The existing track and login interfaces were inspected in a running browser before edits. The redesigned app preserves the Next.js App Router, Prisma schema, API paths, ownership checks, data shapes and service integrations. Initial redesign checks used isolated local fixtures. The hosted Google sign-in checks below used the existing owner's account without altering its products or price history.
 
 ## Coverage checklist
 
@@ -83,7 +83,9 @@ The release was merged to main and deployed on Vercel. The production migration 
 
 Eight public routes returned HTTP 200. An unauthenticated cron request returned 401. An invalid Google callback redirected to the explicit expiry message and cleared the transaction cookie. No real comparison search, outgoing email, scheduled job, purchase, deletion or publication was triggered by this release verification.
 
-The ownership-file follow-up exposed a migration advisory-lock timeout on the pooled Neon connection. The build now derives Neon's direct endpoint for migrations, accepts an explicit DIRECT_DATABASE_URL for other providers, and retains pooling for runtime traffic. Advisory locking remains enabled and a failed migration still prevents promotion. Five regression tests cover credentials/TLS preservation, direct overrides, provider boundaries and sanitized invalid-URL failures; **98 unit tests** and type checking pass after this correction.
+The ownership-file follow-up exposed a migration advisory-lock timeout on the pooled Neon connection. The build now derives Neon's direct endpoint for migrations, accepts an explicit DIRECT_DATABASE_URL for other providers, and retains pooling for runtime traffic. Advisory locking remains enabled and a failed migration still prevents promotion. Five regression tests cover credentials/TLS preservation, direct overrides, provider boundaries and sanitized invalid-URL failures. CI run 36728863564 passed **98 unit tests**, **17 PostgreSQL integration tests**, type checking and the production build. Vercel's corrected build used the direct endpoint, reported no pending migrations, reached Ready and promoted the production alias. No database reset, backend termination or lock bypass was needed.
+
+The deployed ownership file returned HTTP 200 with Google's exact content. Search Console automatically verified the Watchtower URL-prefix property using that file, and Settings showed confirmed ownership. The file remains public to retain verification. The corrected release also retained the owner's authenticated session and Google-connected Account state without page overflow. Saved hosted and ownership proof is under the ignored `.local/` directory.
 
 ## Concrete limits
 
@@ -91,4 +93,4 @@ The preview database is isolated in-memory PGlite using the repository's migrati
 
 Selected live retailer scraping and external image delivery were verified in the follow-up above; this does not establish compatibility with every retailer. Groq assessments, Tavily/Google search, Resend delivery and scheduled production cron execution were not exercised with real credentials. Their existing contracts and unit coverage were preserved. The unavailable-image fallback remains available. The preview's prices, histories and notes are explicit local fixtures, never production claims.
 
-The release is deployed; details are recorded in DEPLOYMENT.md. The official Google authentication library was added and both lockfiles synchronized. This redesign does not resolve the repository's pre-existing dependency audit findings. Google's separate branding validation still requires homepage ownership verification and its stated 24-hour propagation wait; sign-in works with the production hostname shown in Google's chooser meanwhile.
+The release is deployed; details are recorded in DEPLOYMENT.md. The official Google authentication library was added and both lockfiles synchronized. This redesign does not resolve the repository's pre-existing dependency audit findings. Homepage ownership is confirmed; Google's separate branding validation still requires its stated 24-hour propagation wait before retrying. Sign-in works with the production hostname shown in Google's chooser meanwhile.

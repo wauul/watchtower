@@ -83,6 +83,8 @@ The release was merged to main and deployed on Vercel. The production migration 
 
 Eight public routes returned HTTP 200. An unauthenticated cron request returned 401. An invalid Google callback redirected to the explicit expiry message and cleared the transaction cookie. No real comparison search, outgoing email, scheduled job, purchase, deletion or publication was triggered by this release verification.
 
+The ownership-file follow-up exposed a migration advisory-lock timeout on the pooled Neon connection. The build now derives Neon's direct endpoint for migrations, accepts an explicit DIRECT_DATABASE_URL for other providers, and retains pooling for runtime traffic. Advisory locking remains enabled and a failed migration still prevents promotion. Five regression tests cover credentials/TLS preservation, direct overrides, provider boundaries and sanitized invalid-URL failures; **98 unit tests** and type checking pass after this correction.
+
 ## Concrete limits
 
 The preview database is isolated in-memory PGlite using the repository's migrations and a Postgres wire adapter. It is useful for local UI/API checks and does **not** replace the real PostgreSQL 18 Testcontainers integration suite. Docker's engine was unavailable locally, and automatic approval review rejected launching Docker Desktop; the Docker-dependent suite instead passed on the GitHub runner.

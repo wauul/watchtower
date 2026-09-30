@@ -29,6 +29,7 @@ The Prisma JavaScript engine and official Postgres adapter support Windows ARM w
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Neon Postgres pooled connection string with TLS |
+| `DIRECT_DATABASE_URL` | Optional direct connection for production migrations; Neon’s direct endpoint is derived from `DATABASE_URL` when omitted |
 | `GROQ_API_KEY` | Groq inference/extraction |
 | `GROQ_MODEL` | Defaults to openai/gpt-oss-20b; requested Llama model unavailable |
 | `RESEND_API_KEY` | Sending-only email key |
@@ -179,4 +180,4 @@ Google sign-in uses the existing Watchtower account and session system. In Googl
 
 The authorization-code flow uses PKCE, state and nonce, with a signed, ten-minute HttpOnly transaction cookie. The official Google library verifies signed ID tokens, issuer, audience and expiry. Watchtower stores the Google subject identifier, email and initial display name, and does not persist Google access or refresh tokens. Existing names, passwords, watchlists and public finds remain attached to the same account. Gmail and Google Workspace identities can link an existing account with the verified matching email. Other email domains first sign in through Watchtower, then choose **Connect Google** in Account; linking requires the same verified session throughout the callback.
 
-Migration `20260930160000_google_sign_in` adds a nullable, unique Google subject to User. Apply it before serving the new code; the Vercel production build does this automatically. There are 25 deterministic Google-authentication tests covering identity verification, browser/session binding, account linking and callback behavior, bringing the unit suite to 93 tests. Google’s official icon and the small Google Sans font subset are used only for its branded sign-in control; font licensing is included in `public/fonts`.
+Migration `20260930160000_google_sign_in` adds a nullable, unique Google subject to User. Apply it before serving the new code; the Vercel production build does this automatically through a direct database connection. Runtime traffic keeps its pooled connection. There are 25 deterministic Google-authentication tests covering identity verification, browser/session binding, account linking and callback behavior, plus five migration-connection regressions, bringing the unit suite to 98 tests. Google’s official icon and the small Google Sans font subset are used only for its branded sign-in control; font licensing is included in `public/fonts`.

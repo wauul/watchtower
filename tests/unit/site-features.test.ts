@@ -2,6 +2,7 @@ import * as React from 'react';
 import {test,expect,vi,beforeEach} from 'vitest';
 import {hashPassword,checkPassword} from '../../src/lib/password';
 import {outbound} from '../../src/lib/outbound';
+vi.mock('next/headers',()=>({cookies:()=>({get:()=>undefined})}));
 const m=vi.hoisted(()=>({findUser:vi.fn(),updateUser:vi.fn(),subscriber:vi.fn(),upsertSubscriber:vi.fn(),updateSubscriber:vi.fn(),deleteSubscriber:vi.fn(),limit:vi.fn(),email:vi.fn(),session:vi.fn(),finds:vi.fn(),products:vi.fn()}));
 vi.mock('../../src/lib/db',()=>({db:{user:{findUnique:m.findUser,update:m.updateUser},newsletterSubscriber:{findUnique:m.subscriber,upsert:m.upsertSubscriber,update:m.updateSubscriber,deleteMany:m.deleteSubscriber},sharedFind:{findMany:m.finds},product:{findMany:m.products}}}));
 vi.mock('../../src/lib/request-limit',()=>({limited:m.limit}));
